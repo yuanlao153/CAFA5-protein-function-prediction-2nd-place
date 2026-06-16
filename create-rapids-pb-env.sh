@@ -2,10 +2,10 @@
 # pwd
 conda --version
 
-conda create --solver=libmamba -p $1/rapids-env -c rapidsai -c conda-forge -c nvidia  \
+conda create --solver=libmamba -p $1/rapids-pb-env -c rapidsai -c conda-forge -c nvidia  \
     rapids=23.02 python=3.8 cuda-version=11.2 -y
 
-conda activate $1/rapids-env
+conda activate $1/rapids-pb-env
 which python
 pip uninstall cupy numba -y # I reinstall default rapids cupy and numba via pypi due to the problems of my environment
 # It is not actually needed in general case

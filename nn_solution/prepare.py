@@ -49,7 +49,12 @@ if __name__ == '__main__':
     trainTerms['x'] = trainTerms['EntryID'].map({x:i for i,x in enumerate(xxs)})
     trainTerms['y'] = trainTerms['term'].map({x:i for i,x in enumerate(labels_to_consider)})
 
-    mat = scipy.sparse.coo_matrix((np.ones(len(trainTerms)), 
+    # FIXED: drop rows with NaN indices (e.g. corrupted lines in train_terms.tsv)
+    trainTerms = trainTerms.dropna(subset=['x', 'y'])
+    trainTerms['x'] = trainTerms['x'].astype(int)
+    trainTerms['y'] = trainTerms['y'].astype(int)
+
+    mat = scipy.sparse.coo_matrix((np.ones(len(trainTerms)),
                                    (trainTerms['x'].values, trainTerms['y'].values)
                                   )
                                  ).tocsr().astype(np.float32)
@@ -61,9 +66,10 @@ if __name__ == '__main__':
     terms = train_terms.groupby(['aspect', 'term'])['term'].count().reset_index(name='frequency')
     print(terms.groupby('aspect')['term'].nunique())
 
-    CCOProt = set(train_terms[train_terms['aspect']=='CCO']['EntryID'].unique())
-    MFOProt = set(train_terms[train_terms['aspect']=='MFO']['EntryID'].unique())
-    BPOProt = set(train_terms[train_terms['aspect']=='BPO']['EntryID'].unique())
+    # FIXED: add P/F/C abbreviations for CAFA6 data compatibility
+    CCOProt = set(train_terms[train_terms['aspect'].isin(['CCO', 'C'])]['EntryID'].unique())
+    MFOProt = set(train_terms[train_terms['aspect'].isin(['MFO', 'F'])]['EntryID'].unique())
+    BPOProt = set(train_terms[train_terms['aspect'].isin(['BPO', 'P'])]['EntryID'].unique())
 
     AllProt = set(train_terms['EntryID'].unique())
     FullProt = []

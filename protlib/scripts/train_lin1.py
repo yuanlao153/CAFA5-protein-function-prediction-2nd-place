@@ -1,9 +1,7 @@
 import argparse
-import gc
 import os
 import sys
 
-import cupy as cp
 import joblib
 import numpy as np
 import yaml
@@ -40,7 +38,7 @@ if __name__ == '__main__':
     try:
         from protlib.metric import obo_parser, Graph, get_topk_targets
         from protlib.models.prepocess import get_features_simple, get_targets_from_parquet
-        from protlib.models.gbdt import BCEWithNaNLoss, BCEwithNaNMetric
+        from protlib.models.logreg import LogRegMultilabel
 
     except ImportError:
         print('Alarm')
@@ -119,32 +117,14 @@ if __name__ == '__main__':
         print(tr_idx.shape, ts_idx.shape)
 
         # train model
-        model = GradientBoosting(
-            BCEWithNaNLoss(), BCEwithNaNMetric(),
-            ntrees=20000, lr=0.05, verbose=100, es=200, lambda_l2=10, gd_steps=1,
-            subsample=.8, colsample=0.8, min_data_in_leaf=10, use_hess=False,
-            max_bin=256, max_depth=6,
-            multioutput_sketch=RandomProjectionSketch(3),
-            # callbacks=[WarmStart(pretrained)]
-        )
-
-        # FIXED: ensure contiguous arrays to prevent cudaErrorInvalidValue
-        model.fit(
-            np.ascontiguousarray(X[tr_idx]),
-            np.ascontiguousarray(Y[tr_idx]),
-            eval_sets=[{'X': np.ascontiguousarray(X[ts_idx]), 'y': np.ascontiguousarray(Y[ts_idx])}]
-        )
+        model = LogRegMultilabel(alpha=0.00001)
+        model.fit(X[tr_idx], Y[tr_idx])
         joblib.dump(model, os.path.join(output, f'model_{f}.pkl'))
 
         # oof prediction
-        oof_pred[ts_idx] += model.predict(np.ascontiguousarray(X[ts_idx]), batch_size=5000)
+        oof_pred[ts_idx] += model.predict(X[ts_idx])
         # test prediction
-        test_pred += model.predict(np.ascontiguousarray(X_test), batch_size=5000)
-
-        # FIXED: cleanup GPU memory between folds to prevent OOM
-        del model
-        gc.collect()
-        cp.get_default_memory_pool().free_all_blocks()
+        test_pred += model.predict(X_test)
 
     test_pred = test_pred / N_FOLDS
 

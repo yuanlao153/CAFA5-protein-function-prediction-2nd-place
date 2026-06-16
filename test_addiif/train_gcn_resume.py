@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import yaml
 
-sys.path.append(os.path.abspath(os.path.join(__file__, '../../../')))
+sys.path.append(os.path.abspath(os.path.join(__file__, '../../')))
 print(sys.executable)
 parser = argparse.ArgumentParser()
 parser.add_argument('-o', '--ontology', type=str)
@@ -57,7 +57,7 @@ if __name__ == '__main__':
     helpers_path = os.path.join(config['base_path'], config['helpers_path'])
     temporal_path = os.path.join(config['base_path'], config['temporal_path'])
 
-    work_dir = os.path.join(models_path, 'gcn', args.ontology)
+    work_dir = os.path.join(models_path, 'BPnew')
     temp_dir = os.path.join(work_dir, 'temp')
     swa_dir = os.path.join(work_dir, 'swa')
     os.makedirs(temp_dir, exist_ok=True)  # temp path to store some data
@@ -226,6 +226,19 @@ if __name__ == '__main__':
         n_layers=nn_cfg['n_layers'],
         embed_size=nn_cfg['embed_size']
     ).cuda()
+
+    # ===== RESUME from best checkpoint =====
+    ckpt_dir = os.path.join(models_path, 'gcn', args.ontology, 'swa')
+    ckpts = glob.glob(os.path.join(ckpt_dir, 'checkpoint*.pth'))
+    if ckpts:
+        ckpts = sorted(ckpts, key=lambda x: float(x.split('_')[-1].replace('.pth', '')), reverse=True)
+        best_ckpt = ckpts[0]
+        print(f'Loading checkpoint: {best_ckpt}')
+        model.load_state_dict(torch.load(best_ckpt))
+        print(f'Resumed from score {best_ckpt.split("_")[-1].replace(".pth","")}')
+    else:
+        print('WARNING: No checkpoint found, starting from scratch')
+    # =======================================
 
     swa = SWA(nn_cfg['store_swa'], path=swa_dir, rewrite=True)  # 10 best checkpoints are saved
 

@@ -5,9 +5,14 @@ from torch.utils.data import Dataset, DataLoader
 
 try:
     from protlib.metric import get_depths
+except ImportError:
+    get_depths = None
+
+# FIXED: cupy optional, not needed for GCN
+try:
     import cupy as cp
 except ImportError:
-    cp, get_depths = [None] * 2
+    cp = None
 
 
 @jit(nopython=True)
@@ -140,7 +145,14 @@ class StackDataset(Dataset):
             arr[1] = self.prior_cond if cond else self.prior_raw  # prior for raw prediction
             arr[2:] = self.prior_cond  # prior for propagated prediction
             # (assume one of parents for 2 index and assume all parents for 3 index)
-            arr[1:, idx] = pred[index]  # fill with known predictions
+            # FIXED: fill NaN values from conditional models with prior instead
+            fill_vals = pred[index].copy()
+            nan_mask = np.isnan(fill_vals)
+            if nan_mask.any():
+                idx_arr = np.asarray(idx)
+                fill_vals[nan_mask] = arr[1, idx_arr][nan_mask]  # replace NaN with prior
+                arr[0, idx_arr[nan_mask]] = 1                     # mark as "from prior"
+            arr[1:, np.asarray(idx)] = fill_vals
             x.append(torch.from_numpy(arr))
 
         # add go annotations

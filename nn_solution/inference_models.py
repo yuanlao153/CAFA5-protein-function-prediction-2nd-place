@@ -33,7 +33,7 @@ if __name__ == '__main__':
 
     mode_loc = 'full'
 
-    n_samples_to_consider = 142246  # 1000 #   50_000#   142246 #    downsampling - might be useful for debug:  small number - fast run
+    n_samples_to_consider = 145382  # CAFA6 train protein count (CAFA5 was 142246)
     n_labels_to_consider = 2000  # Up to 31466 but more than 3000-5000 may crash RAM
     n_folds_to_process = 5  # can reduce number of folds to speed-up - set 1,2,3 .. , , here 100 folds does NOT mean 100 folds - it just will be effectively clipped down the same number as in loaded folds file
 
@@ -204,7 +204,7 @@ if __name__ == '__main__':
                 if verbose >= 100: print(X_submit[:2, :3])
 
                 fn = fn_submit_protein_ids
-                submit_protein_ids = np.load(fn)
+                submit_protein_ids = np.load(fn, allow_pickle=True)
                 if verbose >= 100: print(submit_protein_ids.shape, submit_protein_ids[:10])
         return X, vec_train_protein_ids, X_submit, submit_protein_ids
 
@@ -241,7 +241,7 @@ if __name__ == '__main__':
     dict_set_allowed_train_indexes = {}
 
     fn = os.path.join(FEAT_DIR, 'train_ids_cut43k.npy')
-    allowed_train_ids = np.load(fn)
+    allowed_train_ids = np.load(fn, allow_pickle=True)
     print(allowed_train_ids.shape, allowed_train_ids[:10])
     vec_allowed_train_indexes_43k = [ix for ix in range(len(vec_train_protein_ids)) if
                                      vec_train_protein_ids[ix] in (allowed_train_ids)]
@@ -349,7 +349,7 @@ if __name__ == '__main__':
     df_stat = pd.DataFrame()
 
     if (mode_submit is not None) and (mode_submit != False):
-        Y_submit = np.zeros((141865, Y.shape[1]), dtype=np.float16)  # Predictions for submission will be stored here
+        Y_submit = np.zeros((224309, Y.shape[1]), dtype=np.float16)  # Predictions for submission (CAFA6 test count)
         # Results from all models and all folds will be blended
         print('Y_submit mbytes:', Y_submit.nbytes / 1024 / 1024)
     cnt_blend_submit = 0;

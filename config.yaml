@@ -1,6 +1,7 @@
 base_path: ./ # working dir
 # environments
-rapids-env: rapids-env/bin/python
+rapids-pb-env: rapids-pb-env/bin/python
+rapids-gcn-env: rapids-gcn-env/bin/python
 pytorch-env: pytorch-env/bin/python
 # artifacts paths
 embeds_path: embeds # path to embeddings 
@@ -37,13 +38,31 @@ base_models: # all models and postprocessing path
         cc: 500
         
     pb_t54500_cond:
-        embeds: 
+        embeds:
             - t5
         conditional: true
         bp: 3000
         mf: 1000
         cc: 500
-        
+
+    pb_t5if4500_raw:
+        embeds:
+            - t5
+            - struct
+        conditional: false
+        bp: 3000
+        mf: 1000
+        cc: 500
+
+    pb_t5if4500_cond:
+        embeds:
+            - t5
+            - struct
+        conditional: true
+        bp: 3000
+        mf: 1000
+        cc: 500
+
     lin_t5_raw:
         embeds: 
             - t5

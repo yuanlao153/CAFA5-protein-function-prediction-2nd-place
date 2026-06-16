@@ -30,7 +30,8 @@ def get_sergey_embeds(fasta, path, ):
     dirname, basename = os.path.dirname(path), os.path.basename(path)
     id_name = os.path.join(dirname, basename.replace('_embeds', '_ids'))
 
-    idx = np.load(id_name)
+    # FIXED: allow_pickle=True for string arrays (protein IDs)
+    idx = np.load(id_name, allow_pickle=True)
 
     if (len(idx) == len(fasta)) and (np.asarray(idx) == fasta['EntryID'].values).all():
         return embed

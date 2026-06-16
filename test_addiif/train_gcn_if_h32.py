@@ -8,12 +8,15 @@ import numpy as np
 import pandas as pd
 import yaml
 
-sys.path.append(os.path.abspath(os.path.join(__file__, '../../../')))
+sys.path.append(os.path.abspath(os.path.join(__file__, '../../')))
 print(sys.executable)
 parser = argparse.ArgumentParser()
 parser.add_argument('-o', '--ontology', type=str)
 parser.add_argument('-c', '--config-path', type=str)
 parser.add_argument('-d', '--device', type=str)
+parser.add_argument('--epochs', type=int, default=None)
+parser.add_argument('--hidden-size', type=int, default=None)
+parser.add_argument('--output-name', type=str, default=None)
 
 ont_dict = {
 
@@ -42,8 +45,8 @@ if __name__ == '__main__':
         from protlib.metric import obo_parser, Graph, ia_parser
         from protlib.metric import get_topk_targets
 
-    except ImportError:
-        print('Alarm')
+    except ImportError as e:
+        print(f'Alarm: {e}')
         pass
 
     with open(args.config_path) as f:
@@ -57,7 +60,8 @@ if __name__ == '__main__':
     helpers_path = os.path.join(config['base_path'], config['helpers_path'])
     temporal_path = os.path.join(config['base_path'], config['temporal_path'])
 
-    work_dir = os.path.join(models_path, 'gcn', args.ontology)
+    out_name = args.output_name if args.output_name else args.ontology
+    work_dir = os.path.join(os.path.dirname(__file__), 'model_if', out_name)
     temp_dir = os.path.join(work_dir, 'temp')
     swa_dir = os.path.join(work_dir, 'swa')
     os.makedirs(temp_dir, exist_ok=True)  # temp path to store some data
@@ -107,6 +111,18 @@ if __name__ == '__main__':
     models_config = []
 
     for mod in nn_cfg['preds']:
+        models_config.append([
+            os.path.join(models_path, mod),
+            [
+                config['base_models'][mod]['bp'],
+                config['base_models'][mod]['mf'],
+                config['base_models'][mod]['cc']
+            ],
+            config['base_models'][mod]['conditional']
+        ])
+
+    # === IF models (fork: +2 models, 5→7, 29→37 dims) ===
+    for mod in ['pb_t5if4500_raw', 'pb_t5if4500_cond']:
         models_config.append([
             os.path.join(models_path, mod),
             [
@@ -220,9 +236,9 @@ if __name__ == '__main__':
 
     # define the model
     model = GCNStacker(
-        5, 1,
+        7, 1,
         G.idxs,
-        hidden_size=nn_cfg['hidden_size'],
+        hidden_size=args.hidden_size if args.hidden_size else nn_cfg['hidden_size'],
         n_layers=nn_cfg['n_layers'],
         embed_size=nn_cfg['embed_size']
     ).cuda()
@@ -235,7 +251,7 @@ if __name__ == '__main__':
         train_dl,
         val_dl,
         evaluator,
-        n_ep=nn_cfg['n_ep'], lr=1e-3, clip_grad=1e-1, weight_decay=0  # 3 epochs for example, I use 20
+        n_ep=args.epochs if args.epochs else nn_cfg['n_ep'], lr=1e-3, clip_grad=1e-1, weight_decay=0
     )
     joblib.dump(swa, os.path.join(work_dir, f'swa.pkl'))
 

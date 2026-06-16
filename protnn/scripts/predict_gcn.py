@@ -1,4 +1,10 @@
+# WARNING: 推理峰值内存约 120GB（3 ontology × 4 TTA × joblib.load test_pred）.
+#         如果 cgroup 限制 < 120GB，请将 num_workers 调低（见下文）。
+#         TTA 循环间已添加 del + gc.collect() 清理，但 Python 不保证归还 OS.
+#         推荐: 推理机 >= 124GB, num_workers=8
+
 import argparse
+import gc
 import os
 import sys
 
@@ -144,3 +150,10 @@ if __name__ == '__main__':
                 topk=500,
                 tau=0.01
             )
+
+            # free memory between TTA configs
+            del test_preds, test_ds, test_dl
+            gc.collect()
+
+        # free memory between ontologies (BP→MF→CC)
+        gc.collect()

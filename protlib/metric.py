@@ -35,8 +35,13 @@ def get_topk_targets(G, topk, train_path='Train', trainTerms=None, ex_top=False,
     ns_id, ns_str = get_ns_id(G)
 
     asp = ns_str.upper() + 'O'
-    sample = trainTerms.query(f'aspect == "{asp}"').copy()
+    asp_short = ns_str.upper()
+    # FIXED: include both BPO/P, MFO/F, CCO/C for CAFA6 data compatibility
+    sample = trainTerms[trainTerms['aspect'].isin([asp, asp_short])].copy()
     sample['id'] = sample['term'].map(get_funcs_mapper(G)).values
+    # FIXED: drop NaN ids (terms not in GO graph) and cast to int
+    sample = sample.dropna(subset=['id'])
+    sample['id'] = sample['id'].astype(int)
 
     vc = sample.groupby(['term', 'id']).size()
     vc = vc[vc >= freq_co]
@@ -238,6 +243,9 @@ def iterate_from_df(df, G, batch_size, idx, back_idx, prop_mode='fill'):
     sub_single = sub_single.sort_values('entry_num')
 
     # propagate and iterate
+    # FIXED: handle empty predictions
+    if sub_single.shape[0] == 0:
+        return
     nrows = int(sub_single['entry_num'].max() + 1)
 
     for i in tqdm.tqdm(range(0, nrows, batch_size)):
@@ -307,18 +315,23 @@ class CAFAMetric:
 
         merged['flg'] = merged['wpred'] > 0
 
-        # calc cov
-        merged['bin_x'] = merged['bin'] + 1
-        mtoi = merged.query('flg')
+        # FIXED: calc cov (robust: do not rely on 'bin_x' column existing after filtering)
+        mtoi = merged[merged['flg']]
 
-        cov = mtoi['entry_id'].nunique() - mtoi \
-            .groupby('entry_id')['bin_x'].max() \
-            .value_counts() \
-            .to_frame() \
-            .join(cudf.DataFrame([], index=cudf.RangeIndex(n_bins)), how='right') \
-            .sort_index() \
-            .fillna(0) \
-            .cumsum()['bin_x'].values
+        max_bin_x = (mtoi.groupby('entry_id')['bin'].max() + 1)
+        max_bin_x.name = 'bin_x'
+
+        vc = max_bin_x.value_counts()
+        vc.name = 'bin_x'
+        vc = vc.to_frame()
+
+        cov = mtoi['entry_id'].nunique() - (
+            vc.join(cudf.DataFrame([], index=cudf.RangeIndex(n_bins)), how='right')
+              .sort_index()
+              .fillna(0)
+              .cumsum()['bin_x']
+              .values
+        )
 
         inter = aggregate_fn(merged, 'inter', n_un, n_bins)
         pred = aggregate_fn(merged, 'wpred', n_un, n_bins)
@@ -382,6 +395,11 @@ class CAFAMetric:
                 )
             ]
 
+        # FIXED: handle empty predictions (epoch 0)
+        if pr is None or cov is None:
+            return 0.0
+        if hasattr(cov, '__len__') and len(cov) == 0:
+            return 0.0
         pr = pr / cov
         rc = rc / len(back_idx)
         f1 = 2 * pr * rc / (pr + rc)
