@@ -1,61 +1,140 @@
-Hello!
+# CAFA6 Protein Function Prediction
 
-Here are the instructions to reproduce the CAFA5 2nd solution using given code
+This repository adapts the [CAFA5 2nd place solution](https://github.com/btbpanda/CAFA5-protein-function-prediction-2nd-place) for the CAFA6 competition. All modifications, experimental findings, and running instructions are documented below.
 
-# CONTENTS
+---
 
-* `nn_solution`                 : scripts for training Neural Network base models
-* `protlib`                     : utils and code to train Py-Boost and LogReg models, data preprocessing and efficient metric computation
-* `protnn`                      : utils and code to train GCN stacker model
-* `CAFA5PIpeline.ipynb`         : CAFA5PIpeline.ipynb - notebook contains all the scripts calls and detailed explanation of each step. Also, contains directory structure (shoul be considered as both `directory_structure.txt` and `entry_points.md`)
-* `Download.ipynb`              : since produced artifacts are quite large, we consider to store it in the cloud storage, instead uploading it on Kagge. To download all trained models, please execute this notebook. Explanation of contents is also provided. **Note!!** the artifacts will be stored for 6 month only. After that, you will need to compute it by yourself.
-* `config.yaml`                 : config used to execute training and inference. 
-* `create-pytorch-env.sh`       : install all the requirements to run all deep learning parts
-* `create-rapids-env.sh`        : install all the requirements to run processing and ML steps
-* `CAFA5docs.pdf`               : detailed solution description
+## CONTENTS
 
+* `nn_solution/` — Neural Network base model training & inference
+* `protlib/` — Py-Boost GBDT & Logistic Regression training, data preprocessing, GO metric computation
+* `protnn/` — GCN stacker model training & inference
+* `CAFA6PIpeline.ipynb` — **Main notebook**: full pipeline with all modifications documented. Follow this notebook step by step to reproduce the solution. Some steps can be skipped using pre-computed files (embeddings, temporal data). Pre-trained model weights and related data are available at https://pan.quark.cn/s/4a4b2b6aae4b. For comparison, see the original `CAFA5PIpeline.ipynb` at the [upstream repo](https://github.com/btbpanda/CAFA5-protein-function-prediction-2nd-place).
+* `command.md` — All training/inference commands used in our runs
+* `config.yaml` — Model and path configuration (updated for CAFA6 data sizes)
+* `check/` — Analysis reports, propagation comparison, environment matrix, data analysis
+* `test_addiif/` — IF model experiments (7-model GCN with ESM-IF embeddings)
+* `create-rapids-pb-env.sh` — Install RAPIDS 23.02 env for preprocessing & ML
+* `create-pytorch-env.sh` — Install PyTorch env for DL models
+* `create-rapids-gcn-env.sh` — Install RAPIDS 26.06 env for postprocessing
+* `CAFA5docs.pdf` — Original solution description (CAFA5)
 
-# HARDWARE 
+---
 
-We used the following setup to train:
+## KEY MODIFICATIONS FOR CAFA6
 
-* 24 CPUs
-* 512 GB RAM
-* 2 x Tesla V100 32 GB
+### Data Preprocessing
+| Change | Details |
+|------|------|
+| **GO DAG propagation** | Enabled `--propagate True` in `create_helpers.py`. GCN SWA best improved: BP +0.073, MF +0.037, CC +0.009 |
+| **Deduplication + binarization** | Added `drop_duplicates` + `trg[trg>0]=1.0` to prevent label values >1 |
+| **Ontology-parallel** | Added `--ontology` flag for 3x faster parallel execution |
+| **CAFA6 data merge** | CAFA6 (82,404 proteins) as primary + CAFA5 unique (62,978) as supplement = 145,382 total |
 
-Minimal required hardware:
-    
-* 8 CPUs
-* 64 GB RAM
-* 1 x Tesla V100 32 GB    
-* 300 GB disk space
-    
-# SOFTWARE
+### Model Training
+| Change | Details |
+|------|------|
+| **LogReg alpha** | Changed from 1e-5 → 1e-7 for fewer NaN convergence failures on sparse conditional terms |
+| **LogReg parallel folds** | Added `--folds` option + `merge_folds.py` for parallel 5-fold CV |
+| **NN data sizes** | Updated `train_models.py`/`inference_models.py`: train 142246→145382, test 141865→224309 |
+| **prepare.py** | Added CAFA6 aspect code compatibility (P/F/C + BPO/MFO/CCO) and NaN row filtering |
 
-* Ubuntu 18.04
-* Nvidia driver version 450 
-* `python>=3.8` to run `CAFA5PIpeline.ipynb` and `Download.ipynb` notebooks. This `python` will not be used to train the models, it only launches the execution notebooks. Only requred libraries are `pyyaml` to read `config.yaml` and `kaggle` to obtain the original dataset via API
-* `conda>=23.5.2`. We need one of the latest version to use Mamba solver. Otherwise, setup the environments will take hours
+### GCN & Inference
+| Change | Details |
+|------|------|
+| **Memory fix** | Added `del` + `gc.collect()` between TTA configs AND ontologies in `predict_gcn.py`, which may reduce peak RAM usage vs. the original code |
+| **Inference memory** | Requires **124GB RAM** for full 4-TTA prediction (original 62GB caused cgroup OOM) |
+| **num_workers** | Adjusted to 8 (stable at 124GB). WARNING header added to `predict_gcn.py` |
+| **CC-only prediction** | Script at `aaa/ccadd/predict_cc_only.py` for separate CC ontology inference |
+| **BP checkpoint resume** | `test_addiif/train_gcn_resume.py` for resuming from SWA checkpoint |
+| **IF experiments** | 7-model GCN with ESM-IF embeddings (`test_addiif/train_gcn_if.py`): CC +0.005, MF -0.003 |
+| **Hidden size experiments** | Tested hidden=24/32: slower convergence, worse than hidden=16 |
 
-Other required tools will be installed via `create-pytorch-env.sh` and `create-rapids-env.sh` scripts. 
+### Environment
+| Environment | Python | CUDA | RAPIDS | Purpose |
+|------|------|------|------|------|
+| `pytorch-env` | — | 12 | — | NN training, GCN training/inference |
+| `rapids-pb-env` | 3.8 | 11.2 | 23.02 | Data prep, py-boost, LogReg training |
+| `rapids-gcn-env` | 3.12 | 12 | 26.06 | GCN epoch eval, postprocessing (cudf) |
 
-* `pytorch-env` is the environment to train DL models. It will install pytorch, cupy, and some extra bio libraries
-* `rapids-env` is the enviromnent to do preprocessing and train ML models. It uses NVIDIA RAPIDS toolkit (cudf) and cupy libraries to make the efficient dataprocessing, metric computation (including custom CUDA kernels for graph manipulation) and custom ML algorithms implementations.
+---
 
+## HARDWARE (Our Setup)
 
-# DATA AND ENV SETUP
+| Component | Spec |
+|------|------|
+| GPU | 4× NVIDIA RTX 4080 Super (32GB VRAM each) |
+| CPU | 16 vCPU Intel Xeon Platinum 8352V @ 2.10GHz |
+| RAM | 62GB (training), 124GB (inference — **critical** for 4-TTA prediction) |
+| Disk | 30GB system + 1TB data |
 
-To install default python dependencies, please execute `pip install -r requirements.txt`
+### Original CAFA5 Hardware (for reference)
+* 2× Tesla V100 32GB, 512GB RAM
+* Training times  faster on  RTX 4080s 
 
-To obtain the original Kaggle dataset, please execute (be sure you get personal access kaggle token)
+---
 
+## SOFTWARE
+
+* Ubuntu 22.04
+* Python ≥3.8 for notebook execution (only `pyyaml` required)
+* Conda ≥23.5.2 with libmamba solver
+* NVIDIA driver supporting CUDA 12
+
+---
+
+## QUICK START
+
+### 1. Setup environments
 ```bash
-kaggle competitions download -c cafa-5-protein-function-prediction
-unzip cafa-5-protein-function-prediction.zip
+./create-rapids-pb-env.sh .
+./create-pytorch-env.sh .
+./create-rapids-gcn-env.sh .
 ```
 
-# NEXT STEPS
+### 2. Run the pipeline
+Open `CAFA6PIpeline.ipynb` and execute cells step by step. Pre-computed files are provided for:
+- `./embeds/` — T5 (1024d), ESM2-650M (1280d), ESM-IF (512d)
+- `./temporal/` — GOA electronic annotations (already propagated)
 
-To reproduce the solution, please step by step execute the notebook `CAFA5PIpeline.ipynb`. There is also explanation provided to understand, what happends at each step.
+### 3. Key requirements
+- **Training:** 62GB+ RAM, RTX 4080 (or equivalent 32GB GPU)
+- **Inference:** **124GB RAM required** for full 4-TTA GCN prediction
+- **Disk:** ~50GB for model weights + embeddings
 
-You can skip some long executed cells of the `CAFA5PIpeline.ipynb` notebook by download the results using `Download.ipynb` notebooks. The numeration of steps match exactly in both notebooks.
+---
+
+## TRAINING TIMES (RTX 4080 Super)
+
+| Stage | Time (4 GPUs) |
+|------|------|
+| Data preparation + embeddings | ~3 hours |
+| Base models (6 GBDT + 2 LogReg + 1 NN) | ~18 hours |
+| GCN training (BP ~10.7h, MF ~3h, CC ~1.3h) | ~13 hours |
+| GCN inference (4 TTA × 3 ontologies) | ~2.5 hours |
+| Postprocessing | ~10 minutes |
+| **Total** | **~37 hours** |
+
+---
+
+## GCN SCORES
+
+| Ontology | Without propagate | With propagate | Gain |
+|------|------|------|------|
+| BP | 0.3275 | 0.4004 | **+0.073** |
+| MF | 0.6636 | 0.7048 | **+0.037** |
+| CC | 0.5983 | 0.6074 | **+0.009** |
+
+With IF features (7-model GCN, hidden=16):
+| Ontology | 5-model (original) | 7-model (+IF) | Δ |
+|------|------|------|------|
+| CC | 0.6015 | 0.6069 | +0.005 |
+| MF | 0.7048 | 0.7020 | -0.003 |
+
+---
+
+## REFERENCES
+
+* Original solution: https://github.com/btbpanda/CAFA5-protein-function-prediction-2nd-place
+* py-boost (SketchBoost): Vakhrushev et al., NeurIPS 2022
+* CAFA5docs.pdf for detailed methodology
