@@ -136,5 +136,4 @@ With IF features (7-model GCN, hidden=16):
 ## REFERENCES
 
 * Original solution: https://github.com/btbpanda/CAFA5-protein-function-prediction-2nd-place
-* py-boost (SketchBoost): Vakhrushev et al., NeurIPS 2022
 * CAFA5docs.pdf for detailed methodology
