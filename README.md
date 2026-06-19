@@ -66,7 +66,7 @@ This repository adapts the [CAFA5 2nd place solution](https://github.com/btbpand
 | GPU | 4× NVIDIA RTX 4080 Super (32GB VRAM each) |
 | CPU | 16 vCPU Intel Xeon Platinum 8352V @ 2.10GHz |
 | RAM | 62GB (training), 124GB (inference — **critical** for 4-TTA prediction) |
-| Disk | 30GB system + 1TB data |
+| Disk | 30GB system + 1TB data(300GB is enough) |
 
 ### Original CAFA5 Hardware (for reference)
 * 2× Tesla V100 32GB, 512GB RAM
