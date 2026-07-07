@@ -4,6 +4,31 @@ This repository adapts the [CAFA5 2nd place solution](https://github.com/btbpand
 
 ---
 
+## QUICK START
+
+```bash
+# 1. Unpack pre-built environments (no conda required)
+mkdir -p pytorch-env && tar -xzf pytorch-env.tar.gz -C pytorch-env
+mkdir -p rapids-pb-env && tar -xzf rapids-pb-env.tar.gz -C rapids-pb-env
+mkdir -p rapids-gcn-env && tar -xzf rapids-gcn-env.tar.gz -C rapids-gcn-env
+
+# 2. Open the notebook and follow step by step
+CAFA6PIpeline.ipynb — some steps can be skipped (pre-computed files provided)
+
+# 3. If environments fail, rebuild from scratch:
+./create-rapids-pb-env.sh .
+./create-pytorch-env.sh .
+./create-rapids-gcn-env.sh .
+```
+
+| Archive | Size | Python | CUDA | Purpose |
+|------|------|------|------|------|
+| pytorch-env.tar.gz | 3.1G | 3.8 | 12 | NN + GCN training/inference |
+| rapids-pb-env.tar.gz | 2.1G | 3.8 | 11.2 | Data prep, py-boost, LogReg |
+| rapids-gcn-env.tar.gz | 1.2G | 3.12 | 12 | GCN eval, postprocessing |
+
+---
+
 ## CONTENTS
 
 * `nn_solution/` — Neural Network base model training & inference
@@ -66,7 +91,7 @@ This repository adapts the [CAFA5 2nd place solution](https://github.com/btbpand
 | GPU | 4× NVIDIA RTX 4080 Super (32GB VRAM each) |
 | CPU | 16 vCPU Intel Xeon Platinum 8352V @ 2.10GHz |
 | RAM | 62GB (training), 124GB (inference — **critical** for 4-TTA prediction) |
-| Disk | 30GB system + 1TB data(300GB is enough) |
+| Disk | 30GB system + 1TB data |
 
 ### Original CAFA5 Hardware (for reference)
 * 2× Tesla V100 32GB, 512GB RAM
@@ -136,4 +161,5 @@ With IF features (7-model GCN, hidden=16):
 ## REFERENCES
 
 * Original solution: https://github.com/btbpanda/CAFA5-protein-function-prediction-2nd-place
+* py-boost (SketchBoost): Vakhrushev et al., NeurIPS 2022
 * CAFA5docs.pdf for detailed methodology
