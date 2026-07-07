@@ -1,10 +1,10 @@
 # CAFA6 Protein Function Prediction
 
-This repository adapts the [CAFA5 2nd place solution](https://github.com/btbpanda/CAFA5-protein-function-prediction-2nd-place) for the CAFA6 competition. All modifications, experimental findings, and running instructions are documented below.
+This [repository] (https://github.com/yuanlao153/CAFA5-protein-function-prediction-2nd-place/tree/cafa6-adapt) adapts the [CAFA5 2nd place solution](https://github.com/btbpanda/CAFA5-protein-function-prediction-2nd-place) for the CAFA6 competition. All modifications, experimental findings, and running instructions are documented below.
 
 ---
-
-## QUICK START
+If you downloaded CAFA6_3rd_solution.zip from https://pan.quark.cn/s/4a4b2b6aae4b (or https://drive.google.com/drive/folders/13zqUVsz0W34M4ftpxydSyHgmQJL4gEvH?usp=sharing), which includes the pre-built environment packages, `embeds/`, `helpers/` and `temporal/`, follow **QUICK START 1** below. If you only cloned the code from https://github.com/yuanlao153/CAFA5-protein-function-prediction-2nd-place/tree/cafa6-adapt, follow **QUICK START 2** at the bottom.
+## QUICK START 1
 
 ```bash
 # 1. Unpack pre-built environments (no conda required)
@@ -12,13 +12,19 @@ mkdir -p pytorch-env && tar -xzf pytorch-env.tar.gz -C pytorch-env
 mkdir -p rapids-pb-env && tar -xzf rapids-pb-env.tar.gz -C rapids-pb-env
 mkdir -p rapids-gcn-env && tar -xzf rapids-gcn-env.tar.gz -C rapids-gcn-env
 
-# 2. Open the notebook and follow step by step
+# 2. Open the notebook and follow step by step — you can start directly from Section 3 (Base models),
+#    since the zip already includes everything needed for Section 1 (Preparation) and Section 2 (Embeddings).
 CAFA6PIpeline.ipynb — some steps can be skipped (pre-computed files provided)
 
 # 3. If environments fail, rebuild from scratch:
 ./create-rapids-pb-env.sh .
 ./create-pytorch-env.sh .
 ./create-rapids-gcn-env.sh .
+
+# 4. Key requirements
+- **Training:** 62GB+ RAM, RTX 4080 (or equivalent 32GB GPU)
+- **Inference:** **124GB RAM required** for full 4-TTA GCN prediction. Some adjustments were subsequently made to the inference code; 62G is sufficient.
+- **Disk:** ~300GB for model weights + embeddings
 ```
 
 | Archive | Size | Python | CUDA | Purpose |
@@ -26,6 +32,7 @@ CAFA6PIpeline.ipynb — some steps can be skipped (pre-computed files provided)
 | pytorch-env.tar.gz | 3.1G | 3.8 | 12 | NN + GCN training/inference |
 | rapids-pb-env.tar.gz | 2.1G | 3.8 | 11.2 | Data prep, py-boost, LogReg |
 | rapids-gcn-env.tar.gz | 1.2G | 3.12 | 12 | GCN eval, postprocessing |
+
 
 ---
 
@@ -37,12 +44,12 @@ CAFA6PIpeline.ipynb — some steps can be skipped (pre-computed files provided)
 * `CAFA6PIpeline.ipynb` — **Main notebook**: full pipeline with all modifications documented. Follow this notebook step by step to reproduce the solution. Some steps can be skipped using pre-computed files (embeddings, temporal data). Pre-trained model weights and related data are available at https://pan.quark.cn/s/4a4b2b6aae4b（or https://drive.google.com/drive/folders/13zqUVsz0W34M4ftpxydSyHgmQJL4gEvH?usp=sharing）. For comparison, see the original `CAFA5PIpeline.ipynb` at the [upstream repo](https://github.com/btbpanda/CAFA5-protein-function-prediction-2nd-place).
 * `command.md` — All training/inference commands used in our runs
 * `config.yaml` — Model and path configuration (updated for CAFA6 data sizes)
-* `check/` — Analysis reports, propagation comparison, environment matrix, data analysis
 * `test_addiif/` — IF model experiments (7-model GCN with ESM-IF embeddings)
 * `create-rapids-pb-env.sh` — Install RAPIDS 23.02 env for preprocessing & ML
 * `create-pytorch-env.sh` — Install PyTorch env for DL models
 * `create-rapids-gcn-env.sh` — Install RAPIDS 26.06 env for postprocessing
-* `CAFA5docs.pdf` — Original solution description (CAFA5)
+* `CAFA6-3rd-report.pdf` — solution description(CAFA6-3rd)
+
 
 ---
 
@@ -70,7 +77,6 @@ CAFA6PIpeline.ipynb — some steps can be skipped (pre-computed files provided)
 | **Memory fix** | Added `del` + `gc.collect()` between TTA configs AND ontologies in `predict_gcn.py`, which may reduce peak RAM usage vs. the original code |
 | **Inference memory** | Requires **124GB RAM** for full 4-TTA prediction (original 62GB caused cgroup OOM) |
 | **num_workers** | Adjusted to 8 (stable at 124GB). WARNING header added to `predict_gcn.py` |
-| **CC-only prediction** | Script at `aaa/ccadd/predict_cc_only.py` for separate CC ontology inference |
 | **BP checkpoint resume** | `test_addiif/train_gcn_resume.py` for resuming from SWA checkpoint |
 | **IF experiments** | 7-model GCN with ESM-IF embeddings (`test_addiif/train_gcn_if.py`): CC +0.005, MF -0.003 |
 | **Hidden size experiments** | Tested hidden=24/32: slower convergence, worse than hidden=16 |
@@ -91,7 +97,7 @@ CAFA6PIpeline.ipynb — some steps can be skipped (pre-computed files provided)
 | GPU | 4× NVIDIA RTX 4080 Super (32GB VRAM each) |
 | CPU | 16 vCPU Intel Xeon Platinum 8352V @ 2.10GHz |
 | RAM | 62GB (training), 124GB (inference — **critical** for 4-TTA prediction) |
-| Disk | 30GB system + 1TB data |
+| Disk | 30GB system + 1TB data(300GB is enough) |
 
 ### Original CAFA5 Hardware (for reference)
 * 2× Tesla V100 32GB, 512GB RAM
@@ -108,7 +114,7 @@ CAFA6PIpeline.ipynb — some steps can be skipped (pre-computed files provided)
 
 ---
 
-## QUICK START
+## QUICK START 2
 
 ### 1. Setup environments
 ```bash
@@ -125,7 +131,7 @@ Open `CAFA6PIpeline.ipynb` and execute cells step by step. Pre-computed files ar
 ### 3. Key requirements
 - **Training:** 62GB+ RAM, RTX 4080 (or equivalent 32GB GPU)
 - **Inference:** **124GB RAM required** for full 4-TTA GCN prediction
-- **Disk:** ~50GB for model weights + embeddings
+- **Disk:** ~300GB for model weights + embeddings
 
 ---
 
