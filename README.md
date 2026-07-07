@@ -34,7 +34,7 @@ CAFA6PIpeline.ipynb — some steps can be skipped (pre-computed files provided)
 * `nn_solution/` — Neural Network base model training & inference
 * `protlib/` — Py-Boost GBDT & Logistic Regression training, data preprocessing, GO metric computation
 * `protnn/` — GCN stacker model training & inference
-* `CAFA6PIpeline.ipynb` — **Main notebook**: full pipeline with all modifications documented. Follow this notebook step by step to reproduce the solution. Some steps can be skipped using pre-computed files (embeddings, temporal data). Pre-trained model weights and related data are available at https://pan.quark.cn/s/4a4b2b6aae4b. For comparison, see the original `CAFA5PIpeline.ipynb` at the [upstream repo](https://github.com/btbpanda/CAFA5-protein-function-prediction-2nd-place).
+* `CAFA6PIpeline.ipynb` — **Main notebook**: full pipeline with all modifications documented. Follow this notebook step by step to reproduce the solution. Some steps can be skipped using pre-computed files (embeddings, temporal data). Pre-trained model weights and related data are available at https://pan.quark.cn/s/4a4b2b6aae4b（or https://drive.google.com/drive/folders/13zqUVsz0W34M4ftpxydSyHgmQJL4gEvH?usp=sharing）. For comparison, see the original `CAFA5PIpeline.ipynb` at the [upstream repo](https://github.com/btbpanda/CAFA5-protein-function-prediction-2nd-place).
 * `command.md` — All training/inference commands used in our runs
 * `config.yaml` — Model and path configuration (updated for CAFA6 data sizes)
 * `check/` — Analysis reports, propagation comparison, environment matrix, data analysis
