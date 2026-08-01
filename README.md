@@ -41,7 +41,7 @@ CAFA6PIpeline.ipynb — some steps can be skipped (pre-computed files provided)
 * `nn_solution/` — Neural Network base model training & inference
 * `protlib/` — Py-Boost GBDT & Logistic Regression training, data preprocessing, GO metric computation
 * `protnn/` — GCN stacker model training & inference
-* `CAFA6PIpeline.ipynb` — **Main notebook**: full pipeline with all modifications documented. Follow this notebook step by step to reproduce the solution. Some steps can be skipped using pre-computed files (embeddings, temporal data). Pre-trained model weights and related data are available at https://pan.quark.cn/s/4a4b2b6aae4b（or https://drive.google.com/drive/folders/13zqUVsz0W34M4ftpxydSyHgmQJL4gEvH?usp=sharing）. For comparison, see the original `CAFA5PIpeline.ipynb` at the [upstream repo](https://github.com/btbpanda/CAFA5-protein-function-prediction-2nd-place).
+* `CAFA6PIpeline.ipynb` — **Main notebook**: full pipeline with all modifications documented. Follow this notebook step by step to reproduce the solution. Some steps can be skipped using pre-computed files (embeddings, temporal data). Pre-trained model weights and related data are available at https://pan.quark.cn/s/4a4b2b6aae4b. For comparison, see the original `CAFA5PIpeline.ipynb` at the [upstream repo](https://github.com/btbpanda/CAFA5-protein-function-prediction-2nd-place).
 * `command.md` — All training/inference commands used in our runs
 * `config.yaml` — Model and path configuration (updated for CAFA6 data sizes)
 * `test_addiif/` — IF model experiments (7-model GCN with ESM-IF embeddings)
@@ -117,6 +117,26 @@ CAFA6PIpeline.ipynb — some steps can be skipped (pre-computed files provided)
 ## QUICK START 2
 
 ### 1. Setup environments
+
+**Option A (recommended): Use lock files for exact reproducibility**
+
+```bash
+# Create the three conda environments from lock files:
+conda env create -p ./pytorch-env -f pytorch-env-lock.yaml
+conda env create -p ./rapids-pb-env -f rapids-pb-env-lock.yaml
+
+# rapids-gcn-env is pure pip (no conda packages). Create it manually:
+conda create -p ./rapids-gcn-env python=3.12 -y
+conda activate ./rapids-gcn-env  # or use ./rapids-gcn-env/bin/pip
+pip install -r rapids-gcn-env-requirements.txt
+
+# After that, install pip dependencies for the other two environments:
+conda activate ./pytorch-env && pip install -r pytorch-env-requirements.txt
+conda activate ./rapids-pb-env && pip install -r rapids-pb-env-requirements.txt
+```
+
+**Option B: Use the shell scripts (may produce slightly different versions)**
+
 ```bash
 ./create-rapids-pb-env.sh .
 ./create-pytorch-env.sh .
