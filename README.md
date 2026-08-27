@@ -3,7 +3,7 @@
 This [repository] (https://github.com/yuanlao153/CAFA5-protein-function-prediction-2nd-place/tree/cafa6-adapt) adapts the [CAFA5 2nd place solution](https://github.com/btbpanda/CAFA5-protein-function-prediction-2nd-place) for the CAFA6 competition. All modifications, experimental findings, and running instructions are documented below.
 
 ---
-If you downloaded CAFA6_3rd_solution.zip from https://pan.quark.cn/s/4a4b2b6aae4b (or https://drive.google.com/drive/folders/13zqUVsz0W34M4ftpxydSyHgmQJL4gEvH?usp=sharing), which includes the pre-built environment packages, `embeds/`, `helpers/` and `temporal/`, follow **QUICK START 1** below. If you only cloned the code from https://github.com/yuanlao153/CAFA5-protein-function-prediction-2nd-place/tree/cafa6-adapt, follow **QUICK START 2** at the bottom.
+If you downloaded CAFA6_3rd_solution.zip from https://pan.quark.cn/s/4a4b2b6aae4b (or https://drive.google.com/drive/folders/13zqUVsz0W34M4ftpxydSyHgmQJL4gEvH?usp=sharing),since Google Drive files may expire after a few months, Ryan Schuenke (one of CAFA 6 hosters)helped me migrate them to [here](https://huggingface.co/schuerya/CAFA6-3rd-place-models). which includes the pre-built environment packages, `embeds/`, `helpers/` and `temporal/`, follow **QUICK START 1** below. If you only cloned the code from https://github.com/yuanlao153/CAFA5-protein-function-prediction-2nd-place/tree/cafa6-adapt, follow **QUICK START 2** at the bottom.
 ## QUICK START 1
 
 ```bash
